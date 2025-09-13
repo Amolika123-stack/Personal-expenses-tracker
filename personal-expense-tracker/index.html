@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Expense Tracker</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #transactions { margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background: #f4f4f4; }
+    button { padding: 4px 8px; margin: 2px; }
+  </style>
+</head>
+<body>
+  <h2>💰 Expense Tracker</h2>
+  <form id="expenseForm">
+    <input type="text" id="desc" placeholder="Description" required>
+    <input type="number" id="amount" placeholder="Amount" required>
+    <select id="type">
+      <option value="income">Income</option>
+      <option value="expense">Expense</option>
+    </select>
+    <button type="submit">Save</button>
+  </form>
+
+  <h3>Transactions</h3>
+  <table id="transactions">
+    <tr><th>Description</th><th>Amount</th><th>Type</th><th>Actions</th></tr>
+  </table>
+
+  <h3 id="summary">Balance: 0</h3>
+
+  <script>
+    let editingIndex = null;
+
+    // Load saved data from localStorage
+    let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+
+    function saveToLocalStorage() {
+      localStorage.setItem("transactions", JSON.stringify(transactions));
+    }
+
+    function updateTable() {
+      let table = document.getElementById("transactions");
+      table.innerHTML = "<tr><th>Description</th><th>Amount</th><th>Type</th><th>Actions</th></tr>";
+
+      transactions.forEach((t, index) => {
+        let row = table.insertRow();
+        row.insertCell(0).innerText = t.desc;
+        row.insertCell(1).innerText = t.amount;
+        row.insertCell(2).innerText = t.type;
+
+        // Actions
+        let actions = row.insertCell(3);
+
+        let editBtn = document.createElement("button");
+        editBtn.innerText = "Edit";
+        editBtn.onclick = function() {
+          document.getElementById("desc").value = t.desc;
+          document.getElementById("amount").value = t.amount;
+          document.getElementById("type").value = t.type;
+          editingIndex = index;
+        };
+
+        let delBtn = document.createElement("button");
+        delBtn.innerText = "Delete";
+        delBtn.onclick = function() {
+          transactions.splice(index, 1);
+          saveToLocalStorage();
+          updateTable();
+        };
+
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+      });
+
+      updateSummary();
+    }
+
+    function updateSummary() {
+      let income = 0, expense = 0;
+      transactions.forEach(t => {
+        if (t.type === "income") income += parseFloat(t.amount);
+        else expense += parseFloat(t.amount);
+      });
+      document.getElementById("summary").innerText =
+        `Balance: ${income - expense} (Income: ${income}, Expense: ${expense})`;
+    }
+
+    document.getElementById("expenseForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      let desc = document.getElementById("desc").value;
+      let amount = parseFloat(document.getElementById("amount").value);
+      let type = document.getElementById("type").value;
+
+      if (editingIndex !== null) {
+        // Update existing transaction
+        transactions[editingIndex] = { desc, amount, type };
+        editingIndex = null;
+      } else {
+        // Add new transaction
+        transactions.push({ desc, amount, type });
+      }
+
+      saveToLocalStorage();
+      updateTable();
+      document.getElementById("expenseForm").reset();
+    });
+
+    // Initialize on page load
+    updateTable();
+  </script>
+</body>
+</html>
